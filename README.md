@@ -1,6 +1,6 @@
 # DAGP reproducers
 
-Minimal reproducers for two incorrect-advice bugs in the
+Minimal reproducers for incorrect-advice and cache-correctness bugs in the
 [Dependency Analysis Gradle Plugin](https://github.com/autonomousapps/dependency-analysis-gradle-plugin)
 (3.16.1, Gradle 9.5.1, Kotlin 2.3.21, AGP 9.2.1).
 
@@ -90,3 +90,48 @@ Check your module classpath for missing or conflicting dependencies.
 
 DAGP credits the supertype usage to `client-lib` (the direct provider of `GuestClient`) but
 not to the dependency that actually supplies `BaseApiClient` to the compile classpath.
+
+## 3. `stale-graph-cache/`
+
+`consumer -> middle -> leaf`, where the `middle -> leaf` edge and the consumer source using
+a leaf class are both added by the `-PleafEdge` property (modeling an upstream module's PR
+adding `api(project(":leaf"))` plus generated code in the consumer, with the consumer's own
+`build.gradle.kts` untouched).
+
+`onUsedTransitiveDependencies` is set to `severity("fail")` for the consumer, so
+`projectHealth` is a real gate.
+
+```
+./gradlew :stale-graph-cache:consumer:projectHealth              # seed: passes, correctly
+./gradlew :stale-graph-cache:consumer:projectHealth -PleafEdge   # PASSES: graphViewMain UP-TO-DATE, violation hidden
+rm -rf stale-graph-cache/*/build                                 # then again:
+./gradlew :stale-graph-cache:consumer:projectHealth -PleafEdge   # PASSES: graphViewMain FROM-CACHE, violation hidden
+./gradlew :stale-graph-cache:consumer:projectHealth -PleafEdge --rerun-tasks --no-build-cache
+```
+
+The last command fails with the truth:
+
+```
+These transitive dependencies should be declared directly:
+  implementation(project(":stale-graph-cache:leaf"))
+```
+
+The middle two commands pass, two flavors of the same defect: incrementality
+(`UP-TO-DATE` even though the resolved compile classpath gained a project node) and the
+build cache (a wiped `build/` restores the stale pre-edge graph). In both cases
+`computeAdvice` runs against a stale `graph-compile.json` and emits no advice, so
+`projectHealth`/`buildHealth` gates pass builds that violate the configured
+`onUsedTransitiveDependencies { severity("fail") }` policy. The violation then surfaces on
+whichever later build happens to miss the cache (in a large real build, the first PR after
+any external-artifact bump), failing CI for an unrelated change.
+
+Root cause: in
+[GraphViewTask](https://github.com/autonomousapps/dependency-analysis-gradle-plugin/blob/main/src/main/kotlin/com/autonomousapps/tasks/GraphViewTask.kt)
+the semantically dominant inputs are excluded from fingerprinting. `compileClasspathResult`
+(the resolved `ResolvedComponentResult` graph) and `compileClasspathFileCoordinates` are
+`@Internal`; the `@InputFiles` properties (`compileFiles`/`runtimeFiles`) are wired to
+`externalArtifactsFor(...)`, which contains external artifacts only; and `declarations`
+covers only the consumer's own build script. A transitive project edge added upstream
+changes none of the tracked inputs, so the task's cache key (and up-to-date state) is
+identical before and after the edge exists. Promoting the coordinate set to a tracked input
+would invalidate exactly when the graph changes.
