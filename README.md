@@ -135,3 +135,33 @@ covers only the consumer's own build script. A transitive project edge added ups
 changes none of the tracked inputs, so the task's cache key (and up-to-date state) is
 identical before and after the edge exists. Promoting the coordinate set to a tracked input
 would invalidate exactly when the graph changes.
+
+## 4. `android-fixture-rewrite-cycle/`
+
+Two Android libraries reproduce a strict `fixDependencies` two-cycle. The consumer's
+`testFixtures` source set exposes `FakeService` from the producer's test-fixtures capability
+in its ABI, while using `Placeholder` from the producer's main capability only in a method
+body. The correct declarations are therefore:
+
+```groovy
+testFixturesApi testFixtures(project(':android-fixture-rewrite-cycle:producer'))
+testFixturesImplementation project(':android-fixture-rewrite-cycle:producer')
+```
+
+The reproducer starts with both declarations on `testFixturesApi`. DAGP correctly advises
+demoting only the plain project dependency, but the Groovy build-script rewriter matches by
+project coordinates without preserving the test-fixtures capability and demotes both. On
+the next analysis DAGP correctly advises promoting only the test-fixtures dependency, but
+the rewriter promotes both and returns the script to its original state.
+
+```shell
+./gradlew :android-fixture-rewrite-cycle:consumer:projectHealth --no-build-cache
+./gradlew :android-fixture-rewrite-cycle:consumer:fixDependencies --no-build-cache
+./gradlew :android-fixture-rewrite-cycle:consumer:projectHealth --no-build-cache
+./gradlew :android-fixture-rewrite-cycle:consumer:fixDependencies --no-build-cache
+```
+
+Both `projectHealth` commands fail because this reproducer configures incorrect dependency
+configurations as fatal. The first requests a plain-project demotion, the second requests a
+test-fixtures promotion, and the two `fixDependencies` invocations alternate the build script
+between the two incorrect states.

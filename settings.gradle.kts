@@ -17,6 +17,8 @@ rootProject.name = "dagp-reproducers"
 
 include(":fixture-misattribution:lib")
 include(":fixture-misattribution:consumer")
+include(":android-fixture-rewrite-cycle:producer")
+include(":android-fixture-rewrite-cycle:consumer")
 include(":supertype-demotion:supertype-lib")
 include(":supertype-demotion:client-lib")
 include(":supertype-demotion:consumer")

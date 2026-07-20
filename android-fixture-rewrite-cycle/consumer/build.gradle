@@ -1,0 +1,22 @@
+plugins {
+    id 'com.autonomousapps.dependency-analysis'
+    id 'com.android.library'
+}
+
+android {
+    namespace = 'com.example.androidconsumer'
+    compileSdk = 36
+
+    testFixtures {
+        enable = true
+    }
+}
+
+kotlin {
+    jvmToolchain(17)
+}
+
+dependencies {
+    testFixturesApi testFixtures(project(':android-fixture-rewrite-cycle:producer'))
+    testFixturesApi project(':android-fixture-rewrite-cycle:producer')
+}

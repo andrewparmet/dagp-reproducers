@@ -14,6 +14,11 @@ dependencyAnalysis {
                 severity("fail")
             }
         }
+        project(":android-fixture-rewrite-cycle:consumer") {
+            onIncorrectConfiguration {
+                severity("fail")
+            }
+        }
     }
     usage {
         analysis {
