@@ -4,5 +4,6 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":sdk"))
+    implementation(project(":direct"))
+    implementation(project(":transitive"))
 }

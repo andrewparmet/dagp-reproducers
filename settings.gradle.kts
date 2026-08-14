@@ -15,6 +15,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "dagp-reproducers"
 
-include(":consumer")
-include(":sdk")
-include(":leaf")
+include(":app")
+include(":direct")
+include(":transitive")
