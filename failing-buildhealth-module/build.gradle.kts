@@ -5,4 +5,7 @@ plugins {
 
 dependencies {
     implementation(project(":direct"))
+    if (!providers.gradleProperty("rewireDependency").map(String::toBoolean).getOrElse(false)) {
+        implementation(project(":transitive"))
+    }
 }

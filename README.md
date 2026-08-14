@@ -2,16 +2,16 @@
 
 Minimal, all-local reproducer for stale dependency advice from [Dependency Analysis Gradle Plugin](https://github.com/autonomousapps/dependency-analysis-gradle-plugin) 3.18.0.
 
-The baseline commit has two paths from `:failing-buildhealth-module` to `:transitive`:
+By default, the build has two paths from `:failing-buildhealth-module` to `:transitive`:
 
 ```text
 :failing-buildhealth-module -> :direct -> :transitive
                             \-------------> :transitive
 ```
 
-The failing module declares both projects directly, so the baseline produces no dependency advice.
+The failing module declares both projects directly, so the default configuration produces no dependency advice.
 
-This commit removes the direct edge while leaving `:transitive` available through `:direct`:
+The `rewireDependency=true` configuration removes the direct edge while leaving `:transitive` available through `:direct`:
 
 ```text
 :failing-buildhealth-module -> :direct -> :transitive
@@ -19,17 +19,15 @@ This commit removes the direct edge while leaving `:transitive` available throug
 
 The failing module still instantiates `Transitive`, so DAGP should advise declaring `:transitive` directly.
 
-Run the baseline first to seed cached task state, then analyze this commit with and without forced task execution:
+Run the default configuration first to seed cached task state, then enable the property with and without forced task execution:
 
 ```shell
-git switch --detach HEAD^
 ./gradlew clean :failing-buildhealth-module:projectHealth
-git switch reproduce-stale-dependency-advice-cache
-./gradlew clean :failing-buildhealth-module:projectHealth
-./gradlew clean :failing-buildhealth-module:projectHealth --rerun-tasks
+./gradlew clean :failing-buildhealth-module:projectHealth -PrewireDependency=true
+./gradlew clean :failing-buildhealth-module:projectHealth -PrewireDependency=true --rerun-tasks
 ```
 
-Correct behavior: both runs at the branch tip advise adding `implementation(project(":transitive"))`.
+Correct behavior: both property-enabled runs advise adding `implementation(project(":transitive"))`.
 
 Stale-cache behavior: the normal run restores empty advice from the baseline, while `--rerun-tasks` reports the missing direct dependency.
 
