@@ -22,7 +22,7 @@ Run the baseline first to seed cached task state, then analyze this commit with 
 ```shell
 git switch --detach HEAD^
 ./gradlew clean :consumer:projectHealth
-git switch reproduce-stale-local-dependency-advice-cache
+git switch reproduce-stale-dependency-advice-cache
 ./gradlew clean :consumer:projectHealth
 ./gradlew clean :consumer:projectHealth --rerun-tasks
 ```
