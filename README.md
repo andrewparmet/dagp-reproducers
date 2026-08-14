@@ -2,15 +2,15 @@
 
 Minimal, all-local reproducer for stale dependency advice from [Dependency Analysis Gradle Plugin](https://github.com/autonomousapps/dependency-analysis-gradle-plugin) 3.18.0.
 
-The baseline has two paths from `:app` to `:transitive`:
+The baseline has two paths from `:failing-buildhealth-module` to `:transitive`:
 
 ```text
-:app -> :direct -> :transitive
-    \-------------> :transitive
+:failing-buildhealth-module -> :direct -> :transitive
+                            \-------------> :transitive
 ```
 
 The consumer declares both projects directly, so this should produce no dependency advice:
 
 ```shell
-./gradlew clean :app:projectHealth
+./gradlew clean :failing-buildhealth-module:projectHealth
 ```

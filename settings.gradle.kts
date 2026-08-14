@@ -15,6 +15,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "dagp-reproducers"
 
-include(":app")
+include(":failing-buildhealth-module")
 include(":direct")
 include(":transitive")
