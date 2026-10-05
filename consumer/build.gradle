@@ -1,0 +1,13 @@
+plugins {
+    id 'com.autonomousapps.dependency-analysis'
+    id 'org.jetbrains.kotlin.jvm'
+    id 'java-library'
+    id 'java-test-fixtures'
+}
+
+dependencies {
+    api project(':model')
+
+    testFixturesApi project(':fixture-bridge')
+    testFixturesImplementation testFixtures(project(':fixture-bridge'))
+}
